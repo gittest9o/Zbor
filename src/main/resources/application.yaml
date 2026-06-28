@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/zbor
     username: zbor_user
-    password: zbor_pass
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
 
@@ -22,7 +22,27 @@ spring:
 
 server:
   port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, metrics, info
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true

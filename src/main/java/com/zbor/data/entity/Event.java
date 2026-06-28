@@ -40,7 +40,7 @@ public class Event {
     @Builder.Default
     private EventStatus status = EventStatus.PUBLISHED;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "organizer_id", nullable = false)
     private User organizer;
 
@@ -76,7 +76,7 @@ public class Event {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER) //todo Пофиксить в дальнейшем и получать по частям напрямую из бд
     @JoinTable(
             name = "event_participants",
             joinColumns = @JoinColumn(name = "event_id"),

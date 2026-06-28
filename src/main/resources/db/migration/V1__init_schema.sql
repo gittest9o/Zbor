@@ -5,7 +5,7 @@ CREATE TABLE users
     username    VARCHAR(255),
     first_name  VARCHAR(255) NOT NULL,
     last_name   VARCHAR(255),
-    image_url   VARCHAR(255),
+    image_url   TEXT,
     age         INTEGER      NOT NULL,
     gender      VARCHAR(10) CHECK (gender IN ('MALE', 'FEMALE')),
     is_blocked  BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -16,10 +16,10 @@ CREATE TABLE users
 CREATE TABLE events
 (
     id               BIGSERIAL PRIMARY KEY,
-    title            VARCHAR(255)   NOT NULL,
+    title            VARCHAR(35)   NOT NULL,
     description      TEXT,
     category         VARCHAR(50)    NOT NULL CHECK (category IN ('TECHNOLOGY', 'BUSINESS', 'ART', 'SPORT', 'EDUCATION', 'MUSIC', 'FOOD', 'NETWORKING', 'HEALTH', 'OTHER')),
-    status           VARCHAR(20)    NOT NULL CHECK (status IN ('ONGOING', 'PUBLISHED', 'CANCELLED', 'FINISHED')) DEFAULT 'DRAFT',
+    status           VARCHAR(20)    NOT NULL CHECK (status IN ('ONGOING', 'PUBLISHED', 'CANCELLED', 'FINISHED')) DEFAULT 'PUBLISHED',
     organizer_id     BIGINT         NOT NULL REFERENCES users (id),
     address          VARCHAR(255),
     latitude         DOUBLE PRECISION,
@@ -28,7 +28,7 @@ CREATE TABLE events
     ends_at          TIMESTAMP,
     max_participants INTEGER,
     price            NUMERIC(10, 2),
-    image_url        VARCHAR(255),
+    image_url        TEXT,
     created_at       TIMESTAMP      NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMP      NOT NULL DEFAULT NOW()
 );

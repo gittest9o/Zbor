@@ -1,0 +1,7 @@
+IP.sslip.io {
+    reverse_proxy backend:8080
+}
+
+grafana.IP.sslip.io {
+    reverse_proxy grafana:3000
+}

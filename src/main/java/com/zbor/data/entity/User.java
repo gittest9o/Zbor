@@ -58,7 +58,7 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "organizer", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "organizer", fetch = FetchType.EAGER) // todo Пофиксить в дальнейшем и получать по частям напрямую из бд
     @Builder.Default
     private List<Event> organizedEvents = new ArrayList<>();
 

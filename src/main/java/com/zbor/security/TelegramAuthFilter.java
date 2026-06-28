@@ -25,20 +25,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.List;
 
-/**
- * Фильтр для всех защищённых запросов.
- *
- * Что делает:
- * 1. Берёт заголовок X-Telegram-Init-Data
- * 2. Проверяет HMAC-SHA256 подпись (официальный алгоритм Telegram)
- * 3. Если подпись валидна — достаёт telegramId и кладёт в request.setAttribute("telegramId")
- * 4. Если невалидна — возвращает 401
- *
- * Контроллеры читают:  Long id = (Long) request.getAttribute("telegramId");
- *
- * ВАЖНО: /auth/** исключён из фильтра через shouldNotFilter —
- * AuthController сам вызывает isValid() и parseTelegramUserData().
- */
 @Component
 @Slf4j
 public class TelegramAuthFilter extends OncePerRequestFilter {
@@ -83,10 +69,6 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * Пути, которые фильтр пропускает без проверки.
-     * /auth/** — проверяется вручную внутри AuthController.
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -96,18 +78,6 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
                 || path.startsWith("/actuator");
     }
 
-    // ── Публичные методы (используются в AuthController) ────────────────────
-
-    /**
-     * Валидация по официальному алгоритму Telegram:
-     * https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
-     *
-     * 1. Убираем hash из параметров
-     * 2. Сортируем остальные параметры по ключу, собираем строку "key=value\n..."
-     * 3. secret_key = HMAC_SHA256("WebAppData", bot_token)
-     * 4. Считаем HMAC_SHA256(secret_key, data_check_string)
-     * 5. Сравниваем с hash
-     */
     public boolean isValid(String initData) {
         try {
             Map<String, String> params = parseQuery(initData);
@@ -122,33 +92,22 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
             byte[] secretKey = hmac("WebAppData".getBytes(StandardCharsets.UTF_8),
                     botToken.getBytes(StandardCharsets.UTF_8));
             byte[] computed  = hmac(secretKey, dataCheckString.getBytes(StandardCharsets.UTF_8));
-            System.out.println("=== isValid called ===");
-            System.out.println(hash);
-            System.out.println(dataCheckString);
-            System.out.println(HexFormat.of().formatHex(computed));
-            System.out.println(HexFormat.of().formatHex(computed).equals(hash));
             return HexFormat.of().formatHex(computed).equals(hash);
 
         } catch (Exception e) {
-            log.error("Ошибка валидации initData: {}", e.getMessage());
+            log.error("initData validation error: {}", e.getMessage());
             return false;
         }
 
     }
 
-    /**
-     * Парсит все данные пользователя из initData.
-     * Вызывается из AuthController после успешного isValid().
-     *
-     * Пример поля user в initData (после URL-decode):
-     * {"id":123456,"first_name":"Ivan","last_name":"Ivanov","username":"ivan"}
-     */
+
     public TelegramUserData parseTelegramUserData(String initData) {
         try {
             Map<String, String> params = parseQuery(initData);
             String userJson = params.get("user");
             if (userJson == null) {
-                throw new com.zbor.exceptions.ZborException("Поле user отсутствует в initData");
+                throw new com.zbor.exceptions.ZborException("The user field is missing from initData");
             }
 
             Long   id        = extractLong(userJson,   "\"id\":");
@@ -160,13 +119,10 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
         } catch (com.zbor.exceptions.ZborException e) {
             throw e;
         } catch (Exception e) {
-            throw new com.zbor.exceptions.ZborException("Не удалось распарсить данные Telegram: " + e.getMessage());
+            throw new com.zbor.exceptions.ZborException("Failed to parse Telegram data: " + e.getMessage());
         }
     }
 
-    /**
-     * Извлекает только telegramId — используется в doFilterInternal.
-     */
     public Optional<Long> extractTelegramId(String initData) {
         try {
             Map<String, String> params = parseQuery(initData);
@@ -179,12 +135,11 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
             String digits = userJson.substring(idx + 5).replaceAll("[^0-9].*", "");
             return Optional.of(Long.parseLong(digits));
         } catch (Exception e) {
-            log.error("Не удалось извлечь telegramId: {}", e.getMessage());
+            log.error("Failed to restore telegramId: {}", e.getMessage());
             return Optional.empty();
         }
     }
 
-    // ── Вспомогательные методы ───────────────────────────────────────────────
 
     private Map<String, String> parseQuery(String query) {
         Map<String, String> result = new LinkedHashMap<>();

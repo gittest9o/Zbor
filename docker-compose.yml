@@ -8,8 +8,8 @@ services:
       POSTGRES_DB: zbor
       POSTGRES_USER: zbor_user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zbor_pass}
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - zbor-pg-data:/var/lib/postgresql/data
     healthcheck:
@@ -28,12 +28,80 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/zbor
       SPRING_DATASOURCE_USERNAME: zbor_user
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-zbor_pass}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    expose:
+      - "8080"
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: zbor-loki
+    restart: unless-stopped
+    expose:
+      - "3100"
+    volumes:
+      - zbor-loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: zbor-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: zbor-prometheus
+    restart: unless-stopped
+    expose:
+      - "9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - zbor-prometheus-data:/prometheus
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: zbor-grafana
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - zbor-grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+      - prometheus
+
+  caddy:
+    image: caddy:alpine
+    container_name: zbor-caddy
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - zbor-caddy-data:/data
+      - zbor-caddy-config:/config
+    depends_on:
+      - backend
+      - grafana
 
 volumes:
   zbor-pg-data:
+  zbor-loki-data:
+  zbor-prometheus-data:
+  zbor-grafana-data:
+  zbor-caddy-data:
+  zbor-caddy-config:

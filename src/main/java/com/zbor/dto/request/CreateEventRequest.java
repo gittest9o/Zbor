@@ -21,6 +21,7 @@ public class CreateEventRequest {
 
     private Double latitude;
     private Double longitude;
+    @Size(max = 150)
     private String address;
 
     @NotNull
@@ -29,7 +30,10 @@ public class CreateEventRequest {
     @Future
     private LocalDateTime endsAt;
     @Min(1)
+    @Max(100)
     private Integer maxParticipants;
+    @Max(1000)
     private BigDecimal price;
+    @Size(max = 2000)
     private String imageUrl;
 }

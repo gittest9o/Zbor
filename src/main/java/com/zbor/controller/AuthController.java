@@ -9,7 +9,6 @@ import com.zbor.security.TelegramAuthFilter;
 import com.zbor.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 /**

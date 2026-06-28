@@ -5,12 +5,9 @@ import com.zbor.data.entity.User;
 import com.zbor.data.enums.EventCategory;
 import com.zbor.data.enums.EventStatus;
 import com.zbor.repository.EventRepository;
-import com.zbor.repository.UserRepository;
 import com.zbor.dto.request.CreateEventRequest;
 import com.zbor.exceptions.EventNotFoundException;
-import com.zbor.exceptions.UserNotFoundException;
 import com.zbor.exceptions.ZborException;
-import com.zbor.mapper.CreateEventMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,14 +24,10 @@ import java.util.Objects;
 public class EventService {
 
     private final EventRepository eventRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
-    private final CreateEventMapper createEventMapper;
-
 
     public Event create(Long telegramId, CreateEventRequest req){
-        User organizer = userRepository.findByTelegramId(telegramId)
-                .orElseThrow(() -> new UserNotFoundException(telegramId));
+        User organizer = userService.findByTelegramId(telegramId);
         Event event = Event.builder()
                 .title(req.getTitle())
                 .description(req.getDescription())
@@ -78,10 +71,20 @@ public class EventService {
 
     public Event update(Long eventId, Long telegramId, @Valid CreateEventRequest req) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException(eventId));
-        if(Objects.equals(event.getOrganizer().getTelegramId(), telegramId)){
-            return eventRepository.save(createEventMapper.toEvent(req));
-        } else
+        if (!Objects.equals(event.getOrganizer().getTelegramId(), telegramId))
             throw new ZborException("Permission denied");
+        event.setTitle(req.getTitle());
+        event.setDescription(req.getDescription());
+        event.setCategory(req.getCategory());
+        event.setLatitude(req.getLatitude());
+        event.setLongitude(req.getLongitude());
+        event.setAddress(req.getAddress());
+        event.setStartsAt(req.getStartsAt());
+        event.setEndsAt(req.getEndsAt());
+        event.setMaxParticipants(req.getMaxParticipants());
+        event.setPrice(req.getPrice());
+        event.setImageUrl(req.getImageUrl());
+        return eventRepository.save(event);
     }
 
 

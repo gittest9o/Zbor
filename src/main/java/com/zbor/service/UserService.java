@@ -34,16 +34,20 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException(telegramId));
     }
 
-    public User updateByTgData(TelegramUserData tgData) {
+    public void updateByTgData(TelegramUserData tgData) {
         var optionalUser = userRepository.findByTelegramId(tgData.getId());
          User user = optionalUser.orElseThrow(() -> new UserNotFoundException(tgData.getId()));
          user.setFirstName(tgData.getFirstName());
          user.setLastName(tgData.getLastName());
          user.setUsername(tgData.getUsername());
-         return userRepository.save(user);
+         userRepository.save(user);
     }
 
-    public User createUser(User user) {
-        return userRepository.save(user);
+    public void createUser(User user) {
+         userRepository.save(user);
+    }
+
+    public User findByTelegramId(Long telegramId){
+       return userRepository.findByTelegramId(telegramId).orElseThrow(() -> new UserNotFoundException(telegramId));
     }
 }

@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -33,7 +32,6 @@ public class EventController {
     private final ShortEventMapper shortEventMapper;
     private final UserService userService;
 
-    @Transactional
     @GetMapping
     public Page<ShortEventResponse> getUpcomingEvents(
             @RequestParam(defaultValue = "0") int page,
@@ -58,7 +56,6 @@ public class EventController {
         return events.map(shortEventMapper::toShortResponse);
     }
 
-    @Transactional
     @GetMapping("/{id}")
     public EventResponse getEvent(@PathVariable Long id,
         HttpServletRequest request){
@@ -97,7 +94,6 @@ public class EventController {
         Event event = eventService.update(id, telegramId, req);
         return ResponseEntity.ok(eventMapper.toResponse(event));
     }
-
 
      @PostMapping("/{id}/register")
      public ResponseEntity<Map<String, String>> register(@PathVariable Long id, HttpServletRequest request) {
