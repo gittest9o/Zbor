@@ -6,9 +6,11 @@ import com.zbor.data.enums.UserRole;
 import com.zbor.dto.request.CreateEventRequest;
 import com.zbor.dto.response.EventResponse;
 import com.zbor.dto.response.ShortEventResponse;
+import com.zbor.dto.response.ShortUserResponse;
 import com.zbor.exceptions.ZborException;
 import com.zbor.mapper.EventMapper;
 import com.zbor.mapper.ShortEventMapper;
+import com.zbor.mapper.ShortUserMapper;
 import com.zbor.service.EventService;
 import com.zbor.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +33,7 @@ public class EventController {
     private final EventMapper eventMapper;
     private final ShortEventMapper shortEventMapper;
     private final UserService userService;
+    private final ShortUserMapper shortUserMapper;
 
     @GetMapping
     public Page<ShortEventResponse> getUpcomingEvents(
@@ -57,21 +60,27 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public EventResponse getEvent(@PathVariable Long id,
+    public ResponseEntity<EventResponse> getEvent(@PathVariable Long id,
         HttpServletRequest request){
-
-        var user = userService.getByTelegramId(getTelegramId(request));
-        Event event = eventService.getById(id);
-        EventResponse eventResponse = eventMapper.toResponse(event);
-        if (Objects.equals(user.getId(), eventResponse.getOrganizer().getId())){
+        Long telegramId = getTelegramId(request);
+        EventResponse eventResponse = eventMapper.toResponse(eventService.getById(id));
+        if (Objects.equals(telegramId, eventResponse.getOrganizer().getTelegramId())){
             eventResponse.setUserRole(UserRole.ORGANIZER);
-        } else if (event.isParticipant(user)) {
+        } else if (eventService.isParticipant(eventResponse.getId(),telegramId)) {
             eventResponse.setUserRole(UserRole.PARTICIPANT);
         } else {
             eventResponse.setUserRole(UserRole.NONE);
         }
 
-        return eventResponse;
+        return ResponseEntity.ok(eventResponse);
+    }
+
+    @GetMapping("/{id}/participants")
+    public Page<ShortUserResponse> getParticipants(@PathVariable Long id,
+                                                   @RequestParam(defaultValue = "0") int page,
+                                                   @RequestParam(defaultValue = "10") int size){
+        return userService.getParticipants(id,PageRequest.of(page, size))
+                .map(shortUserMapper::toShortResponse);
     }
 
     @PostMapping

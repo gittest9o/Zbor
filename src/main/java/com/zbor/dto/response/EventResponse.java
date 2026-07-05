@@ -3,6 +3,7 @@ package com.zbor.dto.response;
 import com.zbor.data.enums.EventCategory;
 import com.zbor.data.enums.EventStatus;
 import com.zbor.data.enums.UserRole;
+import com.zbor.mapper.ShortUserMapper;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Setter;
@@ -27,7 +28,7 @@ public class EventResponse {
     private LocalDateTime startsAt;
     private LocalDateTime endsAt;
     private Integer maxParticipants;
-    private List<ShortUserResponse> participants;
+    //private final ShortUserMapper shortUserMapper;
     private BigDecimal price;
     private String imageUrl;
     private LocalDateTime createdAt;

@@ -21,7 +21,7 @@ public class MyProfile {
     private Boolean isBlocked = false;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<ShortEventResponse> organizedEvents = new ArrayList<>();
-    private Set<ShortEventResponse> events = new HashSet<>();
+    //private List<ShortEventResponse> organizedEvents = new ArrayList<>();
+    //private Set<ShortEventResponse> events = new HashSet<>();
 
 }

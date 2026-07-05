@@ -5,9 +5,8 @@ import com.zbor.dto.response.EventResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {UserMapper.class})
+@Mapper(componentModel = "spring")
 public interface EventMapper {
 
-    @Mapping(target = "participants", source = "participants")
     EventResponse toResponse(Event event);
 }

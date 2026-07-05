@@ -122,5 +122,19 @@ public class EventService {
             throw new ZborException("You are not registered for this event");
     }
 
+    public Page<Event> getOrganizedEvents(Long userId, Pageable pageable) {
+        return eventRepository.findByOrganizerId(userId, pageable);
+    }
 
+    public Page<Event> getParticipatedEventsByTelegramId(Long userId, Pageable pageable) {
+        return eventRepository.findByParticipants_telegramId(userId,pageable);
+    }
+
+    public Page<Event> getOrganizedEventsByTelegramId(Long telegramId, Pageable pageable) {
+        return eventRepository.findByOrganizer_telegramId(telegramId, pageable);
+    }
+
+    public boolean isParticipant(Long eventId, Long telegramId){
+        return eventRepository.isParticipantByTelegramId(eventId, telegramId);
+    }
 }

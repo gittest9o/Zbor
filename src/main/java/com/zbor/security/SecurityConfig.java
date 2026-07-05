@@ -30,13 +30,15 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
 
-                .requestMatchers("/auth", "/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/events", "/events/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/events", "/events/**").authenticated()
-                .requestMatchers(HttpMethod.PATCH, "/events/**").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/events/**").authenticated()
-                .requestMatchers("/actuator/**").permitAll()
-                .anyRequest().authenticated()
+                    .requestMatchers("/auth", "/auth/**").permitAll()
+
+                    .requestMatchers("/swagger-ui/**").permitAll()
+                    .requestMatchers("/v3/api-docs/**").permitAll()
+                    .requestMatchers("/api-docs").permitAll()
+                    .requestMatchers("/webjars/**").permitAll()
+                    .requestMatchers("/swagger-resources/**").permitAll()
+
+                    .anyRequest().authenticated()
             )
 
             .addFilterBefore(telegramAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -18,9 +18,11 @@ import java.util.List;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    List<Event> findByOrganizerId(Long organizerId);
+    Page<Event> findByOrganizerId(Long organizerId, Pageable pageable);
 
-    List<Event> findByParticipants_Id(Long userId);
+    Page<Event> findByParticipants_Id(Long userId, Pageable pageable);
+
+    Page<Event> findByParticipants_telegramId(Long telegramId, Pageable pageable);
 
     // Опубликованные события с пагинацией
     Page<Event> findByStatus(EventStatus status, Pageable pageable);
@@ -60,7 +62,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT COUNT(p) > 0 FROM Event e JOIN e.participants p WHERE e.id = :eventId AND p.id = :userId")
     boolean isParticipant(@Param("eventId") Long eventId, @Param("userId") Long userId);
 
+    @Query("SELECT COUNT(p) > 0 FROM Event e JOIN e.participants p WHERE e.id = :eventId AND p.telegramId = :userId")
+    boolean isParticipantByTelegramId(@Param("eventId") Long eventId, @Param("telegramId") Long telegramId);
+
     Page<Event> findByCategoryAndStatusAndStartsAtAfterOrderByStartsAtAsc(
             EventCategory category, EventStatus status, LocalDateTime after, Pageable pageable);
 
+    Page<Event> findByOrganizer_telegramId(Long telegramId, Pageable pageable);
 }

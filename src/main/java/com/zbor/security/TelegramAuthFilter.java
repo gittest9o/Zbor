@@ -75,7 +75,12 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
         return path.startsWith("/auth/")
                 || path.equals("/auth")
                 || path.equals("/")
-                || path.startsWith("/actuator");
+                || path.startsWith("/actuator")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/api-docs")
+                || path.startsWith("/webjars/")
+                || path.startsWith("/swagger-resources/");
     }
 
     public boolean isValid(String initData) {

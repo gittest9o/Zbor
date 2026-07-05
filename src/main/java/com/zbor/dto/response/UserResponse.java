@@ -20,5 +20,5 @@ public class UserResponse {
     private int age;
     private Gender gender;
     private LocalDateTime createdAt;
-    private List<ShortEventResponse> organizedEvents = new ArrayList<>();
+    //private List<ShortEventResponse> organizedEvents = new ArrayList<>();
 }

@@ -11,19 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Первый эндпоинт который вызывает фронт при открытии Mini App.
- *
- * Флоу:
- *   1. Фронт при старте вызывает POST /auth с заголовком X-Telegram-Init-Data
- *   2. Бэк валидирует подпись, ищет юзера в БД
- *      - Юзер есть  → 200 { needsRegistration: false, user: {...} }
- *      - Подпись неверна → 403
- *   3. Если needsRegistration == true, фронт показывает форму age+gender
- *      и вызывает POST /auth/registration
- *   4. После регистрации фронт получает профиль и пускает юзера в приложение
- */
-
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -32,17 +19,6 @@ public class AuthController {
     private final TelegramAuthFilter telegramAuthFilter;
     private final UserService userService;
 
-
-    /**
-     * POST /auth
-     * Header: X-Telegram-Init-Data: <Telegram.WebApp.initData>
-     *
-     *
-     * Ответы:
-     *   403 — невалидная подпись Telegram
-     *   200 { needsRegistration: false, user: { telegramId, firstName, ... } }
-     *   200 { needsRegistration: true  }
-     */
     @PostMapping
     public ResponseEntity<AuthResponse> auth(
             @RequestHeader("X-Telegram-Init-Data") String initData) {
