@@ -62,6 +62,10 @@ public class Event {
     @Column(name = "max_participants")
     private Integer maxParticipants;
 
+    @Builder.Default
+    @Column(name = "participant_count", nullable = false)
+    private Integer participantCount = 0;
+
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
 
@@ -87,11 +91,13 @@ public class Event {
 
     public void addParticipant(User participant) {
         this.participants.add(participant);
+        participantCount+=1;
         participant.getEvents().add(this);
     }
 
     public void removeParticipant(User participant) {
         this.participants.remove(participant);
+        participantCount-=1;
         participant.getEvents().remove(this);
     }
 
