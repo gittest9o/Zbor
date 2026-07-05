@@ -1,6 +1,8 @@
 package com.zbor.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zbor.dto.request.TelegramUserData;
+import com.zbor.exceptions.ZborException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,6 +34,17 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
 
     @Value("${telegram.bot.token}")
     private String botToken;
+
+    // Максимальный возраст initData в секундах (защита от replay-атак).
+    // Telegram не обновляет initData пока Mini App открыт, поэтому лимит должен покрывать
+    // реалистичную длительность одной сессии пользователя, а не только момент открытия.
+    @Value("${telegram.auth.max-age-seconds:86400}")
+    private long maxAgeSeconds;
+
+    // Допуск на расхождение часов сервера/клиента.
+    private static final long CLOCK_SKEW_TOLERANCE_SECONDS = 60;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -47,6 +61,11 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
 
         if (!isValid(initData)) {
             sendUnauthorized(response, "invalid initData");
+            return;
+        }
+
+        if (!isFresh(initData)) {
+            sendUnauthorized(response, "initData expired");
             return;
         }
 
@@ -106,25 +125,53 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
 
     }
 
+    /**
+     * Проверяет, что initData не "протух" — то есть auth_date не старше maxAgeSeconds
+     * и не находится в будущем (с учётом небольшого допуска на расхождение часов).
+     * Без этой проверки один раз перехваченный initData можно использовать бесконечно долго (replay-атака),
+     * поскольку HMAC-подпись сама по себе никак не ограничена по времени.
+     */
+    public boolean isFresh(String initData) {
+        try {
+            Map<String, String> params = parseQuery(initData);
+            String authDateStr = params.get("auth_date");
+            if (authDateStr == null) {
+                log.warn("initData missing auth_date");
+                return false;
+            }
+
+            long authDate = Long.parseLong(authDateStr);
+            long now = Instant.now().getEpochSecond();
+
+            if (authDate > now + CLOCK_SKEW_TOLERANCE_SECONDS) {
+                log.warn("initData auth_date is in the future");
+                return false;
+            }
+            if (now - authDate > maxAgeSeconds) {
+                log.warn("initData is expired: age={}s, maxAge={}s", now - authDate, maxAgeSeconds);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("initData freshness check error: {}", e.getMessage());
+            return false;
+        }
+    }
+
 
     public TelegramUserData parseTelegramUserData(String initData) {
         try {
             Map<String, String> params = parseQuery(initData);
             String userJson = params.get("user");
             if (userJson == null) {
-                throw new com.zbor.exceptions.ZborException("The user field is missing from initData");
+                throw new ZborException("The user field is missing from initData");
             }
 
-            Long   id        = extractLong(userJson,   "\"id\":");
-            String firstName = extractString(userJson, "\"first_name\":");
-            String lastName  = extractString(userJson, "\"last_name\":");
-            String username  = extractString(userJson, "\"username\":");
-
-            return new TelegramUserData(id, firstName, lastName, username);
-        } catch (com.zbor.exceptions.ZborException e) {
+            return objectMapper.readValue(userJson, TelegramUserData.class);
+        } catch (ZborException e) {
             throw e;
         } catch (Exception e) {
-            throw new com.zbor.exceptions.ZborException("Failed to parse Telegram data: " + e.getMessage());
+            throw new ZborException("Failed to parse Telegram data: " + e.getMessage());
         }
     }
 
@@ -134,11 +181,8 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
             String userJson = params.get("user");
             if (userJson == null) return Optional.empty();
 
-            int idx = userJson.indexOf("\"id\":");
-            if (idx < 0) return Optional.empty();
-
-            String digits = userJson.substring(idx + 5).replaceAll("[^0-9].*", "");
-            return Optional.of(Long.parseLong(digits));
+            TelegramUserData data = objectMapper.readValue(userJson, TelegramUserData.class);
+            return Optional.ofNullable(data.getId());
         } catch (Exception e) {
             log.error("Failed to restore telegramId: {}", e.getMessage());
             return Optional.empty();
@@ -157,23 +201,6 @@ public class TelegramAuthFilter extends OncePerRequestFilter {
             }
         }
         return result;
-    }
-
-    private Long extractLong(String json, String key) {
-        int idx = json.indexOf(key);
-        if (idx < 0) return null;
-        String digits = json.substring(idx + key.length()).replaceAll("[^0-9].*", "");
-        return digits.isEmpty() ? null : Long.parseLong(digits);
-    }
-
-    private String extractString(String json, String key) {
-        int idx = json.indexOf(key);
-        if (idx < 0) return null;
-        String rest = json.substring(idx + key.length()).stripLeading();
-        if (!rest.startsWith("\"")) return null;
-        rest = rest.substring(1);
-        int end = rest.indexOf("\"");
-        return end < 0 ? null : rest.substring(0, end);
     }
 
     private byte[] hmac(byte[] key, byte[] data) throws Exception {

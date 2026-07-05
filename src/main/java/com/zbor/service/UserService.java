@@ -1,12 +1,6 @@
 package com.zbor.service;
 
-
-import com.zbor.data.entity.Event;
 import com.zbor.data.entity.User;
-import com.zbor.dto.response.ShortEventResponse;
-import com.zbor.dto.response.ShortUserResponse;
-import com.zbor.mapper.ShortEventMapper;
-import com.zbor.repository.EventRepository;
 import com.zbor.repository.UserRepository;
 import com.zbor.dto.request.TelegramUserData;
 import com.zbor.dto.response.MyProfile;
@@ -14,7 +8,6 @@ import com.zbor.exceptions.UserNotFoundException;
 import com.zbor.mapper.ProfileMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,19 +37,20 @@ public class UserService {
 
     public void updateByTgData(TelegramUserData tgData) {
         var optionalUser = userRepository.findByTelegramId(tgData.getId());
-         User user = optionalUser.orElseThrow(() -> new UserNotFoundException(tgData.getId()));
-         user.setFirstName(tgData.getFirstName());
-         user.setLastName(tgData.getLastName());
-         user.setUsername(tgData.getUsername());
-         userRepository.save(user);
+        User user = optionalUser.orElseThrow(() -> new UserNotFoundException(tgData.getId()));
+        user.setFirstName(tgData.getFirstName());
+        user.setLastName(tgData.getLastName());
+        user.setUsername(tgData.getUsername());
+        user.setImageUrl(tgData.getPhotoUrl());
+        userRepository.save(user);
     }
 
     public void createUser(User user) {
-         userRepository.save(user);
+        userRepository.save(user);
     }
 
     public User findByTelegramId(Long telegramId){
-       return userRepository.findByTelegramId(telegramId).orElseThrow(() -> new UserNotFoundException(telegramId));
+        return userRepository.findByTelegramId(telegramId).orElseThrow(() -> new UserNotFoundException(telegramId));
     }
 
     public Page<User> getParticipants(Long eventId, Pageable pageable) {

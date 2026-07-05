@@ -13,7 +13,7 @@ public class ShortEventResponse {
     private String imageUrl;
     private LocalDateTime startsAt;
     private Integer maxParticipants;
-    private int participantCount;
+    private Integer participantCount;
     private BigDecimal price;
     private EventStatus status;
 

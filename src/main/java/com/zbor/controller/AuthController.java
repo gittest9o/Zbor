@@ -23,7 +23,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> auth(
             @RequestHeader("X-Telegram-Init-Data") String initData) {
 
-        if (!telegramAuthFilter.isValid(initData)) {
+        if (!telegramAuthFilter.isValid(initData) || !telegramAuthFilter.isFresh(initData)) {
             return ResponseEntity.status(403).build();
         }
 
@@ -40,14 +40,14 @@ public class AuthController {
     }
 
 
-     // Body: { "age": 25, "gender": "MALE" }
+    // Body: { "age": 25, "gender": "MALE" }
 
     @PostMapping("/registration")
     public ResponseEntity<AuthResponse> registration(
             @RequestHeader("X-Telegram-Init-Data") String initData,
             @RequestBody CreateUserRequest createUserRequest) {
 
-        if (!telegramAuthFilter.isValid(initData)) {
+        if (!telegramAuthFilter.isValid(initData) || !telegramAuthFilter.isFresh(initData)) {
             return ResponseEntity.status(403).build();
         }
 
@@ -66,6 +66,7 @@ public class AuthController {
                 .firstName(tgData.getFirstName())
                 .lastName(tgData.getLastName())
                 .username(tgData.getUsername())
+                .imageUrl(tgData.getPhotoUrl())
                 .build();
         userService.createUser(user);
         AuthResponse authResponse = new AuthResponse();

@@ -26,20 +26,21 @@ class TelegramAuthFilterTest {
     void setUp() {
         filter = new TelegramAuthFilter();
         ReflectionTestUtils.setField(filter, "botToken", BOT_TOKEN);
+        ReflectionTestUtils.setField(filter, "maxAgeSeconds", 3600L);
     }
 
     // ── Вспомогательные методы ───────────────────────────────────────────────
 
     /**
-     * Строит валидный initData по официальному алгоритму Telegram.
+     * Строит валидный initData по официальному алгоритму Telegram, с произвольным auth_date.
      * https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
      */
-    private String buildValidInitData(String userJson) throws Exception {
+    private String buildValidInitData(String userJson, long authDate) throws Exception {
         String encodedUser = URLEncoder.encode(userJson, StandardCharsets.UTF_8);
-        String rawParams = "auth_date=1700000000&user=" + encodedUser;
+        String rawParams = "auth_date=" + authDate + "&user=" + encodedUser;
 
         // Собираем data_check_string (параметры в алфавитном порядке, без hash)
-        String dataCheckString = "auth_date=1700000000\nuser=" + userJson;
+        String dataCheckString = "auth_date=" + authDate + "\nuser=" + userJson;
 
         // secret_key = HMAC("WebAppData", bot_token)
         Mac mac = Mac.getInstance("HmacSHA256");
@@ -53,6 +54,14 @@ class TelegramAuthFilterTest {
         String hash = HexFormat.of().formatHex(hashBytes);
 
         return rawParams + "&hash=" + hash;
+    }
+
+    // Старый фиксированный auth_date (2023 год) — используется в тестах,
+    // которые проверяют только подпись/парсинг и не должны зависеть от текущего времени.
+    private static final long LEGACY_AUTH_DATE = 1700000000L;
+
+    private String buildValidInitData(String userJson) throws Exception {
+        return buildValidInitData(userJson, LEGACY_AUTH_DATE);
     }
 
     private String buildValidInitDataForUser(long id, String firstName, String lastName, String username)
@@ -124,6 +133,49 @@ class TelegramAuthFilterTest {
         }
     }
 
+    // ── isFresh() ────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("isFresh()")
+    class IsFreshTests {
+
+        @Test
+        @DisplayName("Возвращает true для свежего auth_date (только что подписан)")
+        void isFresh_returnsTrue_forRecentAuthDate() throws Exception {
+            long now = java.time.Instant.now().getEpochSecond();
+            String initData = buildValidInitData("{\"id\":123}", now);
+
+            assertThat(filter.isFresh(initData)).isTrue();
+        }
+
+        @Test
+        @DisplayName("Возвращает false, если auth_date старше maxAgeSeconds (защита от replay)")
+        void isFresh_returnsFalse_forExpiredAuthDate() throws Exception {
+            long now = java.time.Instant.now().getEpochSecond();
+            long expired = now - 7200; // 2 часа назад, лимит по умолчанию 1 час
+            String initData = buildValidInitData("{\"id\":123}", expired);
+
+            assertThat(filter.isFresh(initData)).isFalse();
+        }
+
+        @Test
+        @DisplayName("Возвращает false, если auth_date находится далеко в будущем")
+        void isFresh_returnsFalse_forFutureAuthDate() throws Exception {
+            long now = java.time.Instant.now().getEpochSecond();
+            String initData = buildValidInitData("{\"id\":123}", now + 600);
+
+            assertThat(filter.isFresh(initData)).isFalse();
+        }
+
+        @Test
+        @DisplayName("Возвращает false, если auth_date отсутствует")
+        void isFresh_returnsFalse_whenAuthDateMissing() {
+            String initData = "user=%7B%22id%22%3A123%7D&hash=abc";
+
+            assertThat(filter.isFresh(initData)).isFalse();
+        }
+    }
+
     // ── parseTelegramUserData() ───────────────────────────────────────────────
 
     @Nested
@@ -152,6 +204,28 @@ class TelegramAuthFilterTest {
             TelegramUserData result = filter.parseTelegramUserData(initData);
 
             assertThat(result.getId()).isEqualTo(bigId);
+        }
+
+        @Test
+        @DisplayName("Корректно парсит photo_url аватарки")
+        void parse_returnsPhotoUrl() throws Exception {
+            String userJson = "{\"id\":123,\"first_name\":\"Иван\",\"photo_url\":" +
+                    "\"https://t.me/i/userpic/320/example.jpg\"}";
+            String initData = buildValidInitData(userJson);
+
+            TelegramUserData result = filter.parseTelegramUserData(initData);
+
+            assertThat(result.getPhotoUrl()).isEqualTo("https://t.me/i/userpic/320/example.jpg");
+        }
+
+        @Test
+        @DisplayName("photoUrl равен null, если Telegram не передал photo_url")
+        void parse_photoUrlIsNull_whenAbsent() throws Exception {
+            String initData = buildValidInitDataForUser(123L, "Иван", "Иванов", "ivan");
+
+            TelegramUserData result = filter.parseTelegramUserData(initData);
+
+            assertThat(result.getPhotoUrl()).isNull();
         }
     }
 

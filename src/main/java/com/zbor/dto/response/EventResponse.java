@@ -28,7 +28,7 @@ public class EventResponse {
     private LocalDateTime startsAt;
     private LocalDateTime endsAt;
     private Integer maxParticipants;
-    //private final ShortUserMapper shortUserMapper;
+    private Integer participantCount;
     private BigDecimal price;
     private String imageUrl;
     private LocalDateTime createdAt;

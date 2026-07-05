@@ -62,7 +62,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT COUNT(p) > 0 FROM Event e JOIN e.participants p WHERE e.id = :eventId AND p.id = :userId")
     boolean isParticipant(@Param("eventId") Long eventId, @Param("userId") Long userId);
 
-    @Query("SELECT COUNT(p) > 0 FROM Event e JOIN e.participants p WHERE e.id = :eventId AND p.telegramId = :userId")
+    @Query("SELECT COUNT(p) > 0 FROM Event e JOIN e.participants p WHERE e.id = :eventId AND p.id = :telegramId")
     boolean isParticipantByTelegramId(@Param("eventId") Long eventId, @Param("telegramId") Long telegramId);
 
     Page<Event> findByCategoryAndStatusAndStartsAtAfterOrderByStartsAtAsc(
