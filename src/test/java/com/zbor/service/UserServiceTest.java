@@ -112,7 +112,7 @@ class UserServiceTest {
             when(userRepository.findByTelegramId(123L)).thenReturn(Optional.of(user));
             when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            TelegramUserData tgData = new TelegramUserData(123L, "Пётр", "Петров", "petr");
+            TelegramUserData tgData = new TelegramUserData(123L, "Пётр", "Петров", "petr", "");
             userService.updateByTgData(tgData);
 
             assertThat(user.getFirstName()).isEqualTo("Пётр");
@@ -125,7 +125,7 @@ class UserServiceTest {
         void updateByTgData_throwsIfNotFound() {
             when(userRepository.findByTelegramId(999L)).thenReturn(Optional.empty());
 
-            TelegramUserData tgData = new TelegramUserData(999L, "X", null, null);
+            TelegramUserData tgData = new TelegramUserData(999L, "X", null, null, "");
 
             assertThatThrownBy(() -> userService.updateByTgData(tgData))
                     .isInstanceOf(UserNotFoundException.class);
@@ -138,7 +138,7 @@ class UserServiceTest {
             when(userRepository.findByTelegramId(123L)).thenReturn(Optional.of(user));
             when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            TelegramUserData tgData = new TelegramUserData(123L, "Аноним", null, null);
+            TelegramUserData tgData = new TelegramUserData(123L, "Аноним", null, null, "");
             userService.updateByTgData(tgData);
 
             assertThat(user.getFirstName()).isEqualTo("Аноним");
